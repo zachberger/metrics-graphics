@@ -37,10 +37,6 @@ module.exports = function(grunt) {
         src: '<%= jsFiles %>',
         dest: '<%= dist %>metricsgraphics.js' 
       },
-      test: {
-      	src: ["tests/helpers.js","tests/**/*_test.js"],
-      	dest: 'tests/test.js'
-      }
     },
     uglify: {
       dist: {
@@ -83,12 +79,12 @@ module.exports = function(grunt) {
       }
     },
     qunit: {
-      all: ['tests/test.html'],
+      all: ['tests/**/*.html'],
       options: {
         timeout: 60000,
         coverage: {
           disposeCollector: true,
-          src: ['dist/metricsgraphics.js'],
+          src: ['src/**/*.js'],
           instrumentedFiles: 'temp/',
           lcovReport: 'report/',
           linesThresholdPct: 25 
