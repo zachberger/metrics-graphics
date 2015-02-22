@@ -85,28 +85,35 @@ module.exports = function(grunt) {
     qunit: {
       all: ['tests/test.html'],
       options: {
-	  	timeout: 60000,
-	  	coverage: {
-	      disposeCollector: true,
-	      src: ['dist/metricsgraphics.js'],
-	      instrumentedFiles: 'temp/',
-	      htmlReport: 'report/coverage',
-	      coberturaReport: 'report/',
-	      linesThresholdPct: 85
-   	    }
+        timeout: 60000,
+        coverage: {
+          disposeCollector: true,
+          src: ['dist/metricsgraphics.js'],
+          instrumentedFiles: 'temp/',
+          lcovReport: 'report/',
+          linesThresholdPct: 25 
+        }
       },
-
+    },
+    coveralls: {
+      options: {
+        src: "report/lcov.info"
+      },
+      all: {
+        src: "report/lcov.info"
+      }
     }
   });
 
+  grunt.loadNpmTasks('grunt-coveralls');
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-qunit-istanbul');
 
-
   // Default task.
   grunt.registerTask('default', ['jshint', 'testem', 'concat', 'uglify']);
+  grunt.registerTask('test', ['concat','uglify','qunit','coveralls'] );
 
 };
