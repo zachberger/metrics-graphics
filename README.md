@@ -40,9 +40,9 @@ Though originally envisioned for Mozilla Metrics dashboard projects, we are maki
 The library depends on [D3](http://d3js.org) and [jQuery](http://jquery.com/). As of v2.2, if you do not wish to use jQuery, set [show_tooltips](https://github.com/mozilla/metrics-graphics/wiki/Graphic#show_tooltips) to false, either globally in ``metricsgraphics.js``, or within every ``MG.data_graphic`` call. Only tooltips and [buttons](https://github.com/mozilla/metrics-graphics/wiki/Button-Layout) depend on jQuery.
 
 ## Contributing
-If you would like to help extend MetricsGraphics.js or fix bugs, please [fork the library](https://github.com/mozilla/metrics-graphics) and install [Node.js](http://nodejs.org). Then, from the project's root directory install [gulp](http://gulpjs.com):
+If you would like to help extend MetricsGraphics.js or fix bugs, please [fork the library](https://github.com/mozilla/metrics-graphics) and install [Node.js](http://nodejs.org). Then, from the project's root directory install:
 
-    install gulp
+    
 
 Then, install the library's dependencies:
 
@@ -50,15 +50,15 @@ Then, install the library's dependencies:
 
 To build the library from source, type:
 
-    gulp build:js
+    
 
 To run tests, type:
 
-    gulp test
+    
 
 To run the development server (accessible at http://localhost:4300):
 
-    gulp serve
+    
 
 
 ## Resources

@@ -14,8 +14,6 @@
     ".git",
     ".gitignore",
     "examples",
-    "gulp",
-    "gulpfile.js",
     "index.js",
     "node_modules",
     "package.json",
