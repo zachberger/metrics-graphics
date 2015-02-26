@@ -45,20 +45,8 @@ module.exports = function(grunt) {
       }
     },
     jshint: {
-      files: '<%= dist %>metricsgraphics.js',
+      files: '<%= jsFiles %>',
       options: {
-        curly: true,
-        eqeqeq: true,
-        immed: true,
-        latedef: true,
-        newcap: true,
-        noarg: true,
-        sub: true,
-        undef: true,
-        unused: true,
-        boss: true,
-        eqnull: true,
-        browser: true,
         globals: { 
           jQuery: true,
           d3: true
@@ -71,17 +59,17 @@ module.exports = function(grunt) {
     watch: {
       gruntfile: {
         files: '',
-        tasks: ['jshint:gruntfile']
+        tasks: ['']
       },
       lib_test: {
         files: '',
-        tasks: ['jshint:lib_test', '{%= test_task %}']
+        tasks: ['']
       }
     },
     qunit: {
       all: ['tests/**/*.html'],
       options: {
-        timeout: 60000,
+        timeout: 1000,
         coverage: {
           disposeCollector: true,
           src: ['src/**/*.js'],
@@ -98,6 +86,22 @@ module.exports = function(grunt) {
       all: {
         src: "report/lcov.info"
       }
+    },
+    clean: {
+      all: ["<%= dist %>metricsgraphics.min.js", "<%= dist %>metricsgraphics.js"] 
+    },
+    umd: {
+      all: {
+        options: {
+          src: "<%= dist %>metricsgraphics.js",
+          deps: {
+            'default' : ["d3","jquery"],
+            amd:["d3","jquery"],
+            cgs:["d3","jquery"],
+            global:["d3","jquery"]
+          }
+        }
+      }
     }
   });
 
@@ -107,9 +111,12 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-qunit-istanbul');
+  grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-umd');
 
   // Default task.
-  grunt.registerTask('default', ['jshint', 'testem', 'concat', 'uglify']);
-  grunt.registerTask('test', ['concat','uglify','qunit','coveralls'] );
-
+  grunt.registerTask('default', ['build']);
+  grunt.registerTask('build', ['concat', 'umd', 'uglify'])
+  grunt.registerTask('test', ['build','qunit']);
+  grunt.registerTask('test-ci' ['test', 'coveralls']);
 };
