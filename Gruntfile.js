@@ -116,7 +116,8 @@ module.exports = function(grunt) {
 
   // Default task.
   grunt.registerTask('default', ['build']);
-  grunt.registerTask('build', ['concat', 'umd', 'uglify'])
+  grunt.registerTask('build', ['concat', 'umd', 'uglify']);
   grunt.registerTask('test', ['build','qunit']);
-  grunt.registerTask('test-ci' ['test', 'coveralls']);
+  grunt.registerTask('test-ci', ['test', 'coveralls']);
+
 };
