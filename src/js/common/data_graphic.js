@@ -33,6 +33,7 @@ MG.data_graphic = function() {
         small_text: false,            // coerces small text regardless of graphic size
         xax_count: 6,                 // number of x axis ticks
         xax_tick_length: 5,           // x axis tick length
+        xax_start_at_min: false,
         yax_count: 5,                 // number of y axis ticks
         yax_tick_length: 5,           // y axis tick length
         x_extended_ticks: false,      // extends x axis ticks across chart - useful for tall charts
@@ -72,9 +73,11 @@ MG.data_graphic = function() {
         markers: null,                // sets the marker lines
         scalefns: {},
         scales: {},
+        show_year_markers: false,
         show_secondary_x_label: true,
         target: '#viz',
         interpolate: 'cardinal',       // interpolation method to use when rendering lines
+        interpolate_tension: 0.7,      // its range is from 0 to 1; increase if your data is irregular and you notice artifacts
         custom_line_color_map: [],     // allows arbitrary mapping of lines to colors, e.g. [2,3] will map line 1 to color 2 and line 2 to color 3
         max_data_size: null,           // explicitly specify the the max number of line series, for use with custom_line_color_map
         aggregate_rollover: false,     // links the lines in a multi-line chart
@@ -136,6 +139,7 @@ MG.data_graphic = function() {
         missing_text: 'Data currently missing or unavailable',
         scalefns: {},
         scales: {},
+        show_tooltips: true,
         show_missing_background: true,
         interpolate: 'cardinal'
     };
