@@ -1050,7 +1050,7 @@
                 };
             } else { //percentage
                 yax_format = function(d_) {
-                    var n = d3.format('%p');
+                    var n = d3.format('2p');
                     return n(d_);
                 };
             }
@@ -1487,39 +1487,39 @@
             return args.xax_format;
         }
 
-        var diff,
-            main_time_format,
-            time_frame;
-
-        if (args.time_series) {
-            diff = (args.processed.max_x - args.processed.min_x) / 1000;
-
-            if (diff < 60) {
-                main_time_format = d3.time.format('%M:%S');
-                time_frame = 'seconds';
-            } else if (diff / (60 * 60) <= 24) {
-                main_time_format = d3.time.format('%H:%M');
-                time_frame = 'less-than-a-day';
-            } else if (diff / (60 * 60) <= 24 * 4) {
-                main_time_format = d3.time.format('%H:%M');
-                time_frame = 'four-days';
-            } else {
-                main_time_format = d3.time.format('%b %d');
-                time_frame = 'default';
-            }
-        }
-
-        args.processed.main_x_time_format = main_time_format;
-        args.processed.x_time_frame = time_frame;
-
         return function(d) {
+            var diff;
+            var main_time_format;
+            var time_frame;
+
+            if (args.time_series) {
+                diff = (args.processed.max_x - args.processed.min_x) / 1000;
+
+                if (diff < 60) {
+                    main_time_format = d3.time.format('%M:%S');
+                    time_frame = 'seconds';
+                } else if (diff / (60 * 60) <= 24) {
+                    main_time_format = d3.time.format('%H:%M');
+                    time_frame = 'less-than-a-day';
+                } else if (diff / (60 * 60) <= 24 * 4) {
+                    main_time_format = d3.time.format('%H:%M');
+                    time_frame = 'four-days';
+                } else {
+                    main_time_format = d3.time.format('%b %d');
+                    time_frame = 'default';
+                }
+            }
+
+            args.processed.main_x_time_format = main_time_format;
+            args.processed.x_time_frame = time_frame;
+
             var df = d3.time.format('%b %d');
             var pf = d3.formatPrefix(d);
 
             // format as date or not, of course user can pass in
             // a custom function if desired
             if(args.data[0][0][args.x_accessor] instanceof Date) {
-                return args.processed.main_x_time_format(d);
+                return args.processed.main_x_time_format(new Date(d));
             } else if (typeof args.data[0][0][args.x_accessor] === 'number') {
                 if (d < 1.0) {
                     //don't scale tiny values
@@ -1670,7 +1670,7 @@
                         .attr('dy', args.use_small_class ? -3 : 0)
                         .attr('text-anchor', 'middle')
                         .text(function(d) {
-                            return yformat(d);
+                            return yformat(new Date(d));
                         });
         }
     }
@@ -1852,7 +1852,7 @@
             svg.attr('height', svg_height);
         }
 
-        // This is an unfinished feature. Need to reconsider how we handle automatic scaling.
+        // @todo need to reconsider how we handle automatic scaling
         svg.attr('viewBox', '0 0 ' + svg_width + ' ' + svg_height);
 
         if (args.full_width || args.full_height) {
@@ -3055,9 +3055,16 @@
                         });
                 }
 
-                //remove active datapoint text on mouse out, except if we have a single point
-                svg.selectAll('circle.mg-line-rollover-circle.mg-area' + (d.line_id) + '-color')
-                    .style('opacity', function() {
+                //remove all active data points when aggregate_rollover is enabled
+                if(args.aggregate_rollover) {
+                    svg.selectAll('circle.mg-line-rollover-circle')
+                        .style('opacity', function() {
+                            return 0;
+                        });
+                //remove active data point text on mouse out, except if we have a single point
+                } else {
+                    svg.selectAll('circle.mg-line-rollover-circle.mg-area' + (d.line_id) + '-color')
+                        .style('opacity', function() {
                             if (args.data[d.line_id - 1].length == 1) {
                                 return 1;
                             }
@@ -3065,6 +3072,7 @@
                                 return 0;
                             }
                         });
+                }
 
                 svg.select('.mg-active-datapoint')
                     .text('');
@@ -4111,24 +4119,41 @@
         this.args = args;
 
         this.init = function(args) {
-            chart_title(args);
+            var svg_width, 
+                svg_height;
 
+            svg_width = args.width;
+            svg_height = args.height;
+
+            if (args.full_width) {
+                // get parent element
+                svg_width = get_width(args.target);
+            }
+
+            if (args.full_height) {
+                svg_height = get_height(args.target);
+            }
+
+            chart_title(args);
             // create svg if one doesn't exist
             d3.select(args.target).selectAll('svg').data([args])
               .enter().append('svg')
-                .attr('width', args.width)
-                .attr('height', args.height);
+                .attr('width', svg_width)
+                .attr('height', svg_height);
 
             var svg = mg_get_svg_child_of(args.target);
-
+            
             // has the width or height changed?
-            if (args.width !== Number(svg.attr('width'))) {
-                svg.attr('width', args.width);
+            if (svg_width !== Number(svg.attr('width'))) {
+                svg.attr('width', svg_width);
             }
 
-            if (args.height !== Number(svg.attr('height'))) {
-                svg.attr('height', args.height);
+            if (svg_height !== Number(svg.attr('height'))) {
+                svg.attr('height', svg_height);
             }
+
+            // @todo need to reconsider how we handle automatic scaling
+            svg.attr('viewBox', '0 0 ' + svg_width + ' ' + svg_height);
 
             // delete child elements
             d3.select(args.target).selectAll('svg *').remove();
@@ -4150,11 +4175,11 @@
 
                 args.scales.X = d3.scale.linear()
                     .domain([0, data.length])
-                    .range([args.left + args.buffer, args.width - args.right - args.buffer]);
+                    .range([args.left + args.buffer, svg_width - args.right - args.buffer]);
 
                 args.scales.Y = d3.scale.linear()
                     .domain([-2, 2])
-                    .range([args.height - args.bottom - args.buffer*2, args.top]);
+                    .range([svg_height - args.bottom - args.buffer*2, args.top]);
 
                 args.scalefns.xf = function(di) { return args.scales.X(di.x); };
                 args.scalefns.yf = function(di) { return args.scales.Y(di.y); };
@@ -4177,8 +4202,8 @@
                     .classed('mg-missing-background', true)
                     .attr('x', args.buffer)
                     .attr('y', args.buffer)
-                    .attr('width', args.width-args.buffer*2)
-                    .attr('height', args.height-args.buffer*2)
+                    .attr('width', svg_width-args.buffer*2)
+                    .attr('height', svg_height-args.buffer*2)
                     .attr('rx',15)
                     .attr('ry', 15);
 
@@ -4195,8 +4220,8 @@
             svg.selectAll('.mg-missing-text').data([args.missing_text])
               .enter().append('text')
                 .attr('class', 'mg-missing-text')
-                .attr('x', args.width / 2)
-                .attr('y', args.height / 2)
+                .attr('x', svg_width / 2)
+                .attr('y', svg_height / 2)
                 .attr('dy', '.50em')
                 .attr('text-anchor', 'middle')
                 .text(args.missing_text);
