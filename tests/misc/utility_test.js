@@ -37,6 +37,18 @@ test('mg_get_svg_child_of', function(){
     equal(svg_element_with_node.length, 1, 'Selector-based argument should return a d3 selection with svg.');
 });
 
+test('mg_is_numeric', function(){
+
+    equal(isNumeric(NaN), false, '');
+    equal(isNumeric("xyzzy"), false, '');
+    equal(isNumeric(Infinity), false, '');
+    equal(isNumeric(false), false, '');
+    equal(isNumeric({}), false, '');
+    equal(isNumeric(2), true, '');
+    equal(isNumeric(0.0), true, '');
+
+});
+
 
 module('Utility Functions');
 
