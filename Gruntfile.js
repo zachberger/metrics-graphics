@@ -72,7 +72,7 @@ module.exports = function(grunt) {
         timeout: 1000,
         coverage: {
           disposeCollector: true,
-          src: ['src/**/*.js'],
+          src: ['src/**/*.js','!src/**/bootstrap*.js'],
           instrumentedFiles: 'temp/',
           lcovReport: 'report/',
           linesThresholdPct: 25 
