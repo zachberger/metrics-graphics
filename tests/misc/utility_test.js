@@ -49,6 +49,22 @@ test('mg_is_numeric', function(){
 
 });
 
+test('mg_is_function', function(){
+
+    var test = function (){
+
+    };
+
+    equal(is_function(NaN), false, '');
+    equal(is_function("xyzzy"), false, '');
+    equal(is_function(Infinity), false, '');
+    equal(is_function(false), false, '');
+    equal(is_function({}), false, '');
+    equal(is_function(2), false, '');
+    equal(is_function(0.0), false, '');
+    equal(is_function(test), true, '');
+
+});
 
 module('Utility Functions');
 
