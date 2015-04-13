@@ -25,11 +25,14 @@ function init(args) {
     //but with the intention of using multiple values for multilines, etc.
 
     //do we have a time_series?
-    if (args.data[0][0][args.x_accessor] instanceof Date) {
-        args.time_series = true;
-    } else {
-        args.time_series = false;
+
+    function is_time_series(args) {
+        var flat_data = [];
+        var first_elem = mg_flatten_array(args.data)[0];
+        return first_elem[args.x_accessor] instanceof Date;
     }
+
+    args.time_series = is_time_series(args);
 
     var svg_width = args.width;
     var svg_height = args.height;
@@ -120,7 +123,7 @@ function init(args) {
     //data_graphic() on the same target with 2 lines, remove the 3rd line
 
     var i = 0;
-    if (args.data.length < svg.selectAll('.mg-main-line')[0].length) {
+    if (svg.selectAll('.mg-main-line')[0].length >= args.data.length) {
         //now, the thing is we can't just remove, say, line3 if we have a custom
         //line-color map, instead, see which are the lines to be removed, and delete those
         if (args.custom_line_color_map.length > 0) {

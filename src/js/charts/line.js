@@ -13,6 +13,17 @@ charts.line = function(args) {
 
     this.mainPlot = function() {
         var svg = mg_get_svg_child_of(args.target);
+        
+        //remove any old legends if they exist
+        svg.selectAll('.mg-line-legend').remove();
+
+        var legend_group;
+        var this_legend;
+        if (args.legend) {
+            legend_group = svg.append('g')
+                .attr('class', 'mg-line-legend');
+        }
+
         var g;
         var data_median = 0;
         var updateTransitionDuration = (args.transition_on_update) ? 1000 : 0;
@@ -53,7 +64,6 @@ charts.line = function(args) {
             .y(args.scalefns.yf)
             .interpolate(args.interpolate)
             .tension(args.interpolate_tension);
-
         //for animating line on first load
         var flat_line = d3.svg.line()
             .x(args.scalefns.xf)
@@ -218,12 +228,32 @@ charts.line = function(args) {
 
             //build legend
             if (args.legend) {
-                legend = "<span class='mg-line" + line_id  + "-legend-color'>&mdash; "
-                        + args.legend[i] + "&nbsp; </span>" + legend;
+                if (is_array(args.legend)) {
+                    this_legend = args.legend[i];
+                } else if (is_function(args.legend)) {
+                    this_legend = args.legend(this_data);
+                }
+
+                if (args.legend_target) {
+                    legend = "<span class='mg-line" + line_id  + "-legend-color'>&mdash; "
+                        + this_legend + "&nbsp; </span>" + legend;
+                } else {
+                    var last_point = this_data[this_data.length-1];
+
+                    legend_group.append('svg:text')
+                        .classed('mg-line' + (line_id) + '-legend-color', true)
+                        .attr('x', args.scalefns.xf(last_point))
+                        .attr('dx', args.buffer)
+                        .attr('y', args.scalefns.yf(last_point))
+                        .attr('dy', '.35em')
+                        .text(this_legend);
+
+                    preventVerticalOverlap(legend_group.selectAll('.mg-line-legend text')[0], args);
+                }
             }
         }
 
-        if (args.legend) {
+        if (args.legend_target) {
             d3.select(args.legend_target).html(legend);
         }
 
@@ -465,9 +495,20 @@ charts.line = function(args) {
         } else if (args.data.length > 1) {
             //otherwise, trigger it for an appropriate line in a multi-line chart
             for (var i = 0; i < args.data.length; i++) {
+                var j = i + 1;
+
+                if (args.custom_line_color_map.length > 0 
+                        && args.custom_line_color_map[i] !== undefined
+                    ) {
+                    j = args.custom_line_color_map[i];
+                }
+
                 if (args.data[i].length == 1) {
-                    svg.selectAll('.mg-voronoi .mg-line' + (i + 1) + '-color')
+                    svg.selectAll('.mg-voronoi .mg-line' + j + '-color')
                         .on('mouseover')(args.data[i][0], 0);
+
+                    svg.selectAll('.mg-voronoi .mg-line' + j + '-color')
+                        .on('mouseout')(args.data[i][0], 0);
                 }
             }
         }
@@ -493,20 +534,17 @@ charts.line = function(args) {
         }
 
         return function(d, i) {
-
             if (args.aggregate_rollover && args.data.length > 1) {
-
                 // hide the circles in case a non-contiguous series is present
                 svg.selectAll('circle.mg-line-rollover-circle')
                     .style('opacity', 0);
 
                 d.values.forEach(function(datum) {
-
                   if (datum[args.x_accessor] >= args.processed.min_x &&
                       datum[args.x_accessor] <= args.processed.max_x &&
                       datum[args.y_accessor] >= args.processed.min_y &&
                       datum[args.y_accessor] <= args.processed.max_y
-                  ){
+                  ) {
                     var circle = svg.select('circle.mg-line' + datum.line_id + '-color')
                         .attr({
                             'cx': function() {
@@ -524,10 +562,10 @@ charts.line = function(args) {
                     && d[args.y_accessor] == 0 
                     && d['missing']
                 ) {
+
                 //disable rollovers for hidden parts of the line
                 return;
             } else {
-
                 //show circle on mouse-overed rect
                 if (d[args.x_accessor] >= args.processed.min_x &&
                     d[args.x_accessor] <= args.processed.max_x &&
@@ -701,7 +739,16 @@ charts.line = function(args) {
             } else {
                 svg.selectAll('circle.mg-line-rollover-circle.mg-area' + (d.line_id) + '-color')
                     .style('opacity', function() {
-                        if (args.data[d.line_id - 1].length == 1) {
+                        var id = d.line_id - 1;
+
+                        if (args.custom_line_color_map.length > 0 
+                                && args.custom_line_color_map.indexOf(d.line_id) !== undefined
+                            ) {
+                            id = args.custom_line_color_map.indexOf(d.line_id);
+                        }
+
+                        if (args.data[id].length == 1) {
+                        //if (args.data.length === 1 && args.data[0].length === 1) {
                             return 1;
                         }
                         else {

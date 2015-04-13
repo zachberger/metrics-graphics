@@ -2,18 +2,32 @@ function raw_data_transformation(args) {
     'use strict';
 
     // We need to account for a few data format cases:
-    // 1. [{key:__, value:__}, ...]                              // unnested obj-arrays
-    // 2. [[{key:__, value:__}, ...], [{key:__, value:__}, ...]] // nested obj-arrays
-    // 3. [[4323, 2343],..]                                      // unnested 2d array
-    // 4. [[[4323, 2343],..] , [[4323, 2343],..]]                // nested 2d array
-    if (args.chart_type === 'line') {
-        var is_unnested_obj_array = (args.data[0] instanceof Object && !(args.data[0] instanceof Array));
-        var is_unnested_array_of_arrays = (
-            args.data[0] instanceof Array &&
-            !(args.data[0][0] instanceof Object &&
-            !(args.data[0][0] instanceof Date)));
+    // #1 [{key:__, value:__}, ...]                              // unnested obj-arrays
+    // #2 [[{key:__, value:__}, ...], [{key:__, value:__}, ...]] // nested obj-arrays
+    // #3 [[4323, 2343],..]                                      // unnested 2d array
+    // #4 [[[4323, 2343],..] , [[4323, 2343],..]]                // nested 2d array
 
-        if (is_unnested_obj_array || is_unnested_array_of_arrays) {
+    var _is_nested_array = is_array_of_arrays(args.data);
+
+    args.array_of_objects = false; 
+    args.array_of_arrays = false;
+    args.nested_array_of_arrays = false; 
+    args.nested_array_of_objects = false;
+
+    if (_is_nested_array) {
+        args.nested_array_of_objects = args.data.map(function(d){
+            return is_array_of_objects_or_empty(d);
+        });                                                      // Case #2
+        args.nested_array_of_arrays = args.data.map(function(d){
+            return is_array_of_arrays(d);
+        })                                                       // Case #4
+    } else {
+        args.array_of_objects = is_array_of_objects(args.data);       // Case #1
+        args.array_of_arrays = is_array_of_arrays(args.data);         // Case #3
+    }
+
+    if (args.chart_type === 'line') {
+        if (args.array_of_objects || args.array_of_arrays) {
             args.data = [args.data];
         }
     } else {
@@ -56,9 +70,13 @@ function raw_data_transformation(args) {
 function process_line(args) {
     'use strict';
     //do we have a time-series?
-    var is_time_series = args.data[0][0][args.x_accessor] instanceof Date
-        ? true
-        : false;
+    var is_time_series = d3.sum(args.data.map(function(series) {
+        return series.length > 0 && series[0][args.x_accessor] instanceof Date;
+    })) > 0;
+
+    // var is_time_series = args.data[0][0][args.x_accessor] instanceof Date
+    //     ? true
+    //     : false;
 
     //force linear interpolation when missing_is_hidden is enabled
     if (args.missing_is_hidden) {
@@ -145,6 +163,7 @@ function process_histogram(args) {
 
     // histogram data is always single dimension
     var our_data = args.data[0];
+
     var extracted_data;
     if (args.binned === false) {
         // use d3's built-in layout.histogram functionality to compute what you need.
@@ -213,7 +232,6 @@ function process_categorical_variables(args) {
     var data_accessor =  args.bar_orientation === 'vertical' ? args.y_accessor : args.x_accessor;
 
     args.categorical_variables = [];
-
     if (args.binned === false) {
         if (typeof(our_data[0]) === 'object') {
             // we are dealing with an array of objects. Extract the data value of interest.
