@@ -9,7 +9,7 @@
         root.MG = factory(root.d3, root.jQuery);
       }
     }(this, function(d3, $) {
-    window.MG = {version: '2.3.0'};
+    window.MG = {version: '2.4.0'};
 
     var charts = {};
 
@@ -1215,16 +1215,15 @@
         var buffer_size = args.chart_type === 'point'
             ? args.buffer / 2
             : args.buffer;
-
         var svg = mg_get_svg_child_of(args.target);
 
-        var all_data=[];
-        for (var i=0; i<args.data.length; i++) {
-            for (var j=0; j<args.data[i].length; j++) {
-                all_data.push(args.data[i][j]);
-            }
-        }
-
+        var all_data = mg_flatten_array(args.data)
+        // for (var i=0; i<args.data.length; i++) {
+        //     for (var j=0; j<args.data[i].length; j++) {
+        //         all_data.push(args.data[i][j]);
+        //     }
+        // }
+        
         var rug = svg.selectAll('line.mg-x-rug').data(all_data);
 
         //set the attributes that do not change after initialization, per
@@ -1261,7 +1260,12 @@
         var max_x;
 
         args.processed = {};
-
+        var all_data = [];
+        for (var i = 0; i < args.data.length; i++) {
+            for (var j = 0; j < args.data[i].length; j++) {
+                all_data.push(args.data[i][j]);
+            }
+        }
         args.scalefns.xf = function(di) {
             return args.scales.X(di[args.x_accessor]);
         };
@@ -1486,6 +1490,7 @@
         if (args.xax_format) {
             return args.xax_format;
         }
+        var test_point = mg_flatten_array(args.data)[0][args.x_accessor]
 
         return function(d) {
             var diff;
@@ -1518,9 +1523,9 @@
 
             // format as date or not, of course user can pass in
             // a custom function if desired
-            if(args.data[0][0][args.x_accessor] instanceof Date) {
+            if(test_point instanceof Date) {
                 return args.processed.main_x_time_format(new Date(d));
-            } else if (typeof args.data[0][0][args.x_accessor] === 'number') {
+            } else if (typeof test_point === 'number') {
                 if (d < 1.0) {
                     //don't scale tiny values
                     return args.xax_units + d3.round(d, args.decimals);
@@ -1705,10 +1710,9 @@
             });
         }
         //if data set is of length 1, expand the range so that we can build the x-axis
-        //of course, a line chart doesn't make sense in this case, so the preferred
-        //method would be to check for said object's length and, if appropriate,
-        //change the chart type to 'point'
-        if (min_x === max_x) {
+        if (min_x === max_x 
+                && !(args.min_x && args.max_x) 
+            ) {
             if (min_x instanceof Date) {
                 var yesterday = MG.clone(min_x).setDate(min_x.getDate() - 1);
                 var tomorrow = MG.clone(min_x).setDate(min_x.getDate() + 1);
@@ -1784,11 +1788,14 @@
         //but with the intention of using multiple values for multilines, etc.
 
         //do we have a time_series?
-        if (args.data[0][0][args.x_accessor] instanceof Date) {
-            args.time_series = true;
-        } else {
-            args.time_series = false;
+
+        function is_time_series(args) {
+            var flat_data = [];
+            var first_elem = mg_flatten_array(args.data)[0];
+            return first_elem[args.x_accessor] instanceof Date;
         }
+
+        args.time_series = is_time_series(args);
 
         var svg_width = args.width;
         var svg_height = args.height;
@@ -1879,7 +1886,7 @@
         //data_graphic() on the same target with 2 lines, remove the 3rd line
 
         var i = 0;
-        if (args.data.length < svg.selectAll('.mg-main-line')[0].length) {
+        if (svg.selectAll('.mg-main-line')[0].length >= args.data.length) {
             //now, the thing is we can't just remove, say, line3 if we have a custom
             //line-color map, instead, see which are the lines to be removed, and delete those
             if (args.custom_line_color_map.length > 0) {
@@ -1913,6 +1920,8 @@
 
         return this;
     }
+
+
 
     function markers(args) {
         'use strict';
@@ -1952,7 +1961,21 @@
                         return d.label;
                     });
 
-            preventOverlap(gm.selectAll('.mg-marker-text')[0]);
+            preventHorizontalOverlap(gm.selectAll('.mg-marker-text')[0], args);
+        }
+
+        
+        function xPosition(d) {
+            return args.scales.X(d[args.x_accessor]);
+        }
+
+        function xPositionFixed(d) {
+            return xPosition(d).toFixed(2);
+        }
+
+        function inRange(d) {
+            return (args.scales.X(d[args.x_accessor]) > args.buffer + args.left)
+                && (args.scales.X(d[args.x_accessor]) < args.width - args.buffer - args.right);
         }
 
         if (args.baselines) {
@@ -1983,57 +2006,6 @@
                     .text(function(d) {
                         return d.label;
                     });
-        }
-
-        function preventOverlap(labels) {
-            if (!labels || labels.length == 1) {
-                return;
-            }
-
-            //see if each of our labels overlaps any of the other labels
-            for (var i = 0; i < labels.length; i++) {
-                //if so, nudge it up a bit, if the label it intersects hasn't already been nudged
-                if (isOverlapping(labels[i], labels)) {
-                    var node = d3.select(labels[i]);
-                    var newY = +node.attr('y');
-                    if (newY + 8 == args.top) {
-                        newY = args.top - 16;
-                    }
-                    node.attr('y', newY);
-                }
-            }
-        }
-
-        function isOverlapping(element, labels) {
-            var element_bbox = element.getBoundingClientRect();
-
-            for (var i = 0; i < labels.length; i++) {
-                if (labels[i] == element) {
-                    continue;
-                }
-
-                //check to see if this label overlaps with any of the other labels
-                var sibling_bbox = labels[i].getBoundingClientRect();
-                if (element_bbox.top === sibling_bbox.top && 
-                        !(sibling_bbox.left > element_bbox.right || sibling_bbox.right < element_bbox.left)
-                    ) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function xPosition(d) {
-            return args.scales.X(d[args.x_accessor]);
-        }
-
-        function xPositionFixed(d) {
-            return xPosition(d).toFixed(2);
-        }
-
-        function inRange(d) {
-            return (args.scales.X(d[args.x_accessor]) > args.buffer + args.left)
-                && (args.scales.X(d[args.x_accessor]) < args.width - args.buffer - args.right);
         }
 
         return this;
@@ -2377,6 +2349,17 @@
 
         this.mainPlot = function() {
             var svg = mg_get_svg_child_of(args.target);
+            
+            //remove any old legends if they exist
+            svg.selectAll('.mg-line-legend').remove();
+
+            var legend_group;
+            var this_legend;
+            if (args.legend) {
+                legend_group = svg.append('g')
+                    .attr('class', 'mg-line-legend');
+            }
+
             var g;
             var data_median = 0;
             var updateTransitionDuration = (args.transition_on_update) ? 1000 : 0;
@@ -2417,7 +2400,6 @@
                 .y(args.scalefns.yf)
                 .interpolate(args.interpolate)
                 .tension(args.interpolate_tension);
-
             //for animating line on first load
             var flat_line = d3.svg.line()
                 .x(args.scalefns.xf)
@@ -2582,12 +2564,32 @@
 
                 //build legend
                 if (args.legend) {
-                    legend = "<span class='mg-line" + line_id  + "-legend-color'>&mdash; "
-                            + args.legend[i] + "&nbsp; </span>" + legend;
+                    if (is_array(args.legend)) {
+                        this_legend = args.legend[i];
+                    } else if (is_function(args.legend)) {
+                        this_legend = args.legend(this_data);
+                    }
+
+                    if (args.legend_target) {
+                        legend = "<span class='mg-line" + line_id  + "-legend-color'>&mdash; "
+                            + this_legend + "&nbsp; </span>" + legend;
+                    } else {
+                        var last_point = this_data[this_data.length-1];
+
+                        legend_group.append('svg:text')
+                            .classed('mg-line' + (line_id) + '-legend-color', true)
+                            .attr('x', args.scalefns.xf(last_point))
+                            .attr('dx', args.buffer)
+                            .attr('y', args.scalefns.yf(last_point))
+                            .attr('dy', '.35em')
+                            .text(this_legend);
+
+                        preventVerticalOverlap(legend_group.selectAll('.mg-line-legend text')[0], args);
+                    }
                 }
             }
 
-            if (args.legend) {
+            if (args.legend_target) {
                 d3.select(args.legend_target).html(legend);
             }
 
@@ -2829,9 +2831,20 @@
             } else if (args.data.length > 1) {
                 //otherwise, trigger it for an appropriate line in a multi-line chart
                 for (var i = 0; i < args.data.length; i++) {
+                    var j = i + 1;
+
+                    if (args.custom_line_color_map.length > 0 
+                            && args.custom_line_color_map[i] !== undefined
+                        ) {
+                        j = args.custom_line_color_map[i];
+                    }
+
                     if (args.data[i].length == 1) {
-                        svg.selectAll('.mg-voronoi .mg-line' + (i + 1) + '-color')
+                        svg.selectAll('.mg-voronoi .mg-line' + j + '-color')
                             .on('mouseover')(args.data[i][0], 0);
+
+                        svg.selectAll('.mg-voronoi .mg-line' + j + '-color')
+                            .on('mouseout')(args.data[i][0], 0);
                     }
                 }
             }
@@ -2857,20 +2870,17 @@
             }
 
             return function(d, i) {
-
                 if (args.aggregate_rollover && args.data.length > 1) {
-
                     // hide the circles in case a non-contiguous series is present
                     svg.selectAll('circle.mg-line-rollover-circle')
                         .style('opacity', 0);
 
                     d.values.forEach(function(datum) {
-
                       if (datum[args.x_accessor] >= args.processed.min_x &&
                           datum[args.x_accessor] <= args.processed.max_x &&
                           datum[args.y_accessor] >= args.processed.min_y &&
                           datum[args.y_accessor] <= args.processed.max_y
-                      ){
+                      ) {
                         var circle = svg.select('circle.mg-line' + datum.line_id + '-color')
                             .attr({
                                 'cx': function() {
@@ -2888,10 +2898,10 @@
                         && d[args.y_accessor] == 0 
                         && d['missing']
                     ) {
+
                     //disable rollovers for hidden parts of the line
                     return;
                 } else {
-
                     //show circle on mouse-overed rect
                     if (d[args.x_accessor] >= args.processed.min_x &&
                         d[args.x_accessor] <= args.processed.max_x &&
@@ -3065,7 +3075,16 @@
                 } else {
                     svg.selectAll('circle.mg-line-rollover-circle.mg-area' + (d.line_id) + '-color')
                         .style('opacity', function() {
-                            if (args.data[d.line_id - 1].length == 1) {
+                            var id = d.line_id - 1;
+
+                            if (args.custom_line_color_map.length > 0 
+                                    && args.custom_line_color_map.indexOf(d.line_id) !== undefined
+                                ) {
+                                id = args.custom_line_color_map.indexOf(d.line_id);
+                            }
+
+                            if (args.data[id].length == 1) {
+                            //if (args.data.length === 1 && args.data[0].length === 1) {
                                 return 1;
                             }
                             else {
@@ -4237,18 +4256,32 @@
         'use strict';
 
         // We need to account for a few data format cases:
-        // 1. [{key:__, value:__}, ...]                              // unnested obj-arrays
-        // 2. [[{key:__, value:__}, ...], [{key:__, value:__}, ...]] // nested obj-arrays
-        // 3. [[4323, 2343],..]                                      // unnested 2d array
-        // 4. [[[4323, 2343],..] , [[4323, 2343],..]]                // nested 2d array
-        if (args.chart_type === 'line') {
-            var is_unnested_obj_array = (args.data[0] instanceof Object && !(args.data[0] instanceof Array));
-            var is_unnested_array_of_arrays = (
-                args.data[0] instanceof Array &&
-                !(args.data[0][0] instanceof Object &&
-                !(args.data[0][0] instanceof Date)));
+        // #1 [{key:__, value:__}, ...]                              // unnested obj-arrays
+        // #2 [[{key:__, value:__}, ...], [{key:__, value:__}, ...]] // nested obj-arrays
+        // #3 [[4323, 2343],..]                                      // unnested 2d array
+        // #4 [[[4323, 2343],..] , [[4323, 2343],..]]                // nested 2d array
 
-            if (is_unnested_obj_array || is_unnested_array_of_arrays) {
+        var _is_nested_array = is_array_of_arrays(args.data);
+
+        args.array_of_objects = false; 
+        args.array_of_arrays = false;
+        args.nested_array_of_arrays = false; 
+        args.nested_array_of_objects = false;
+
+        if (_is_nested_array) {
+            args.nested_array_of_objects = args.data.map(function(d){
+                return is_array_of_objects_or_empty(d);
+            });                                                      // Case #2
+            args.nested_array_of_arrays = args.data.map(function(d){
+                return is_array_of_arrays(d);
+            })                                                       // Case #4
+        } else {
+            args.array_of_objects = is_array_of_objects(args.data);       // Case #1
+            args.array_of_arrays = is_array_of_arrays(args.data);         // Case #3
+        }
+
+        if (args.chart_type === 'line') {
+            if (args.array_of_objects || args.array_of_arrays) {
                 args.data = [args.data];
             }
         } else {
@@ -4291,9 +4324,13 @@
     function process_line(args) {
         'use strict';
         //do we have a time-series?
-        var is_time_series = args.data[0][0][args.x_accessor] instanceof Date
-            ? true
-            : false;
+        var is_time_series = d3.sum(args.data.map(function(series) {
+            return series.length > 0 && series[0][args.x_accessor] instanceof Date;
+        })) > 0;
+
+        // var is_time_series = args.data[0][0][args.x_accessor] instanceof Date
+        //     ? true
+        //     : false;
 
         //force linear interpolation when missing_is_hidden is enabled
         if (args.missing_is_hidden) {
@@ -4380,6 +4417,7 @@
 
         // histogram data is always single dimension
         var our_data = args.data[0];
+
         var extracted_data;
         if (args.binned === false) {
             // use d3's built-in layout.histogram functionality to compute what you need.
@@ -4448,7 +4486,6 @@
         var data_accessor =  args.bar_orientation === 'vertical' ? args.y_accessor : args.x_accessor;
 
         args.categorical_variables = [];
-
         if (args.binned === false) {
             if (typeof(our_data[0]) === 'object') {
                 // we are dealing with an array of objects. Extract the data value of interest.
@@ -4836,8 +4873,128 @@
         return data;
     };
 
+
+    function is_array(thing){
+        return Object.prototype.toString.call(thing) === '[object Array]';
+    }
+
+    function is_function(thing){
+        return Object.prototype.toString.call(thing) === '[object Function]';   
+    }
+
+    function is_empty_array(thing){
+        return is_array(thing) && thing.length==0;
+    }
+
+    function is_object(thing){
+        return Object.prototype.toString.call(thing) === '[object Object]';   
+    }
+
+    function is_array_of_arrays(data){
+        var all_elements = data.map(function(d){return is_array(d)===true && d.length>0});
+        return d3.sum(all_elements) === data.length;
+    }
+
+    function is_array_of_objects(data){
+        // is every element of data an object?
+        var all_elements = data.map(function(d){return is_object(d)===true});
+        return d3.sum(all_elements) === data.length;
+    }
+
+    function is_array_of_objects_or_empty(data){
+        return is_empty_array(data) || is_array_of_objects(data);
+    }
+
+
+    function preventHorizontalOverlap(labels, args) {
+        if (!labels || labels.length == 1) {
+            return;
+        }
+
+        //see if each of our labels overlaps any of the other labels
+        for (var i = 0; i < labels.length; i++) {
+            //if so, nudge it up a bit, if the label it intersects hasn't already been nudged
+            if (isHorizontallyOverlapping(labels[i], labels)) {
+                var node = d3.select(labels[i]);
+                var newY = +node.attr('y');
+                if (newY + 8 == args.top) {
+                    newY = args.top - 16;
+                }
+                node.attr('y', newY);
+            }
+        }
+    }
+
+    function preventVerticalOverlap(labels, args) {
+        if (!labels || labels.length == 1) {
+            return;
+        }
+
+        labels.sort(function(b,a){
+            return d3.select(a).attr('y') - d3.select(b).attr('y');
+        });
+
+        labels.reverse();
+
+        var overlap_amount, label_i, label_j;
+
+        //see if each of our labels overlaps any of the other labels
+        for (var i = 0; i < labels.length; i++) {
+            //if so, nudge it up a bit, if the label it intersects hasn't already been nudged
+            label_i = d3.select(labels[i]).text();
+
+            for (var j = 0; j < labels.length; j ++) {
+                label_j = d3.select(labels[j]).text(); 
+                overlap_amount = isVerticallyOverlapping(labels[i], labels[j]);
+
+                if (overlap_amount !== false && label_i !== label_j) {
+                    var node = d3.select(labels[i]);
+                    var newY = +node.attr('y');
+                    newY = newY + overlap_amount;
+                    node.attr('y', newY);
+                }
+            }
+        }
+    }
+
+    function isVerticallyOverlapping(element, sibling) {
+        var element_bbox = element.getBoundingClientRect();
+        var sibling_bbox = sibling.getBoundingClientRect();
+
+        if (element_bbox.top <= sibling_bbox.bottom && element_bbox.top >= sibling_bbox.top) {
+            return sibling_bbox.bottom - element_bbox.top;
+        }
+
+        return false;
+    }
+
+    function isHorizontallyOverlapping(element, labels) {
+        var element_bbox = element.getBoundingClientRect();
+
+        for (var i = 0; i < labels.length; i++) {
+            if (labels[i] == element) {
+                continue;
+            }
+
+            //check to see if this label overlaps with any of the other labels
+            var sibling_bbox = labels[i].getBoundingClientRect();
+            if (element_bbox.top === sibling_bbox.top && 
+                    !(sibling_bbox.left > element_bbox.right || sibling_bbox.right < element_bbox.left)
+                ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     function mg_get_svg_child_of(selector_or_node) {
         return d3.select(selector_or_node).select('svg');
+    }
+
+    function mg_flatten_array(arr) {
+        var flat_data = [];
+        return flat_data.concat.apply(flat_data, arr);
     }
 
     function mg_strip_punctuation(s) {
