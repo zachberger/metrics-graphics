@@ -104,6 +104,42 @@ test('mg_number_of_values', function(){
 
 });
 
+test('mg_number_of_values_below', function(){
+
+  var none = [
+
+  ];
+
+  var none_below = [
+    {
+      "x" : 3
+    }
+  ];
+
+  var some_below = [
+    {
+      "x" : 1
+    },
+    {
+      "x" : 2
+    },
+    {
+      "x" : 1
+    }
+  ];
+
+  var noAccessor =[
+    {
+      "y" : 1
+    }
+  ];
+  equal(has_values_below(none,"x",1),false, '');
+  equal(has_values_below(none_below,"x",2), false, '');
+  equal(has_values_below(some_below,"x",2), true, '');
+  throws(has_values_below(noAccessor,"x",1),'');
+
+});
+
 module('Utility Functions');
 
 
