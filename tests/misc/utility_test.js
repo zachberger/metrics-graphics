@@ -66,6 +66,44 @@ test('mg_is_function', function(){
 
 });
 
+
+
+test('mg_number_of_values', function(){
+
+  var none = [
+
+  ];
+
+  var one = [
+    {
+      "x" : 1
+    }
+  ];
+
+  var some = [
+    {
+      "x" : 1
+    },
+    {
+      "x" : 2
+    },
+    {
+      "x" : 1
+    }
+  ];
+
+  var noAccessor =[
+    {
+      "y" : 1
+    }
+  ];
+  equal(number_of_values(none,"x",1), 0, '');
+  equal(number_of_values(one,"x",1), 1, '');
+  equal(number_of_values(some,"x",1), 2, '');
+  throws(number_of_values(noAccessor,"x",1),'');
+
+});
+
 module('Utility Functions');
 
 
