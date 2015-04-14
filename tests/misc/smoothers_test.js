@@ -5,7 +5,7 @@ test('mg_pow_weight', function() {
 	equal(_pow_weight(1,2),0,'');
 	equal(_pow_weight(0,1),1,'');
 	equal(_pow_weight(0.5,3),0.669921875,'');
-	equal(_pow_weight(0,1),2,'');
+	equal(_pow_weight(0,1),1,'');
 });
 
 // TODO: Re-enable when _neighborhood_width is fixed
