@@ -140,6 +140,40 @@ test('mg_number_of_values_below', function(){
 
 });
 
+test('mg_has_too_many_zeros', function(){
+  var none = [
+
+  ];
+
+  var one = [
+    {
+      "x" : 0
+    }
+  ];
+
+  var some = [
+    {
+      "x" : 0
+    },
+    {
+      "x" : 0
+    },
+    {
+      "x" : 1
+    }
+  ];
+
+  var noAccessor =[
+    {
+      "y" : 1
+    }
+  ];
+  equal(has_too_many_zeros(none,"x",1),false, '');
+  equal(has_too_many_zeros(one,"x",1), true, '');
+  equal(has_too_many_zeros(some,"x",1), true, '');
+  throws(has_too_many_zeros(noAccessor,"x",1),'');
+});
+
 module('Utility Functions');
 
 
