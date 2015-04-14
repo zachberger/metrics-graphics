@@ -8,6 +8,23 @@ test('mg_pow_weight', function() {
 	equal(_pow_weight(0,1),1,'');
 });
 
+test('mg_bisquare_weight', function(){
+	equal(_bisquare_weight(1),0,'');
+	equal(_bisquare_weight(2),0,'');
+	equal(_bisquare_weight(0),1,'');
+	equal(_bisquare_weight(3),0,'');
+	equal(_bisquare_weight(10),0,'');
+
+})
+
+test('mg_tricube_weight', function(){
+	equal(_tricube_weight(1),0,'');
+	equal(_tricube_weight(2),0,'');
+	equal(_tricube_weight(0),1,'');
+	equal(_tricube_weight(3),0,'');
+	equal(_tricube_weight(10),0,'');
+
+})
 
 test('mg_neighborhood_width', function(){
 
