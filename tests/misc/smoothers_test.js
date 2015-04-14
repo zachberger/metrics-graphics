@@ -22,18 +22,32 @@ test('mg_pow_weight', function() {
 // 	throws( _neighborhood_width(5,some_unordered), 6);
 // });
 
-// test('mg_manhattan', function(){
+test('mg_manhattan', function(){
 
-// 	throws(_manhattan(0,0), 0);
-// 	throws(_manhattan(1,0), 1);
-// 	throws(_manhattan(0,1), 1);
-// 	throws(_manhattan(0,5), 5);
-// 	throws(_manhattan(5,0), 5);
-// 	throws(_manhattan(1,5), 4);
-// 	throws(_manhattan(5,1), 4);
+	equal(_manhattan(0,0), 0);
+	equal(_manhattan(1,0), 1);
+	equal(_manhattan(0,1), 1);
+	equal(_manhattan(0,5), 5);
+	equal(_manhattan(5,0), 5);
+	equal(_manhattan(1,5), 4);
+	equal(_manhattan(5,1), 4);
 
-// });
+});
 
-test('mg_weighted_means', function(){
+test('mg_bisquare_weight', function(){
+	equal(_bisquare_weight(1),0,'');
+	equal(_bisquare_weight(2),0,'');
+	equal(_bisquare_weight(0),1,'');
+	equal(_bisquare_weight(3),0,'');
+	equal(_bisquare_weight(10),0,'');
+
+});
+
+test('mg_tricube_weight', function(){
+	equal(_tricube_weight(1),0,'');
+	equal(_tricube_weight(2),0,'');
+	equal(_tricube_weight(0),1,'');
+	equal(_tricube_weight(3),0,'');
+	equal(_tricube_weight(10),0,'');
 
 });
