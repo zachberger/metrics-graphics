@@ -1,86 +1,20 @@
-(function(root, factory) {
+(function (root, factory) {
   if (typeof define === 'function' && define.amd) {
-    define(['d3', 'jquery'], factory);
-  } else if (typeof exports === 'object') {
-    module.exports = factory(require('d3'), require('jquery'));
-  } else {
-    root.MG = factory(root.d3, root.jQuery);
-  }
-}(this, function(d3, $) {
-window.MG = {version: '2.4.0'};
-
-function register(chartType, descriptor, defaults) {
-    MG.charts[chartType] = {
-        descriptor: descriptor,
-        defaults: defaults || {}
-    };
-}
-
-MG.register = register;
-
-/**
-    Record of all registered hooks.
-    For internal use only.
-*/
-MG._hooks = {};
-
-/**
-    Add a hook callthrough to the stack.
-
-    Hooks are executed in the order that they were registered.
-*/
-MG.add_hook = function(name, func, context) {
-    var hooks;
-
-    if (!MG._hooks[name]) {
-        MG._hooks[name] = [];
-    }
-
-    hooks = MG._hooks[name];
-
-    var already_registered =
-        hooks.filter(function(hook) {
-            return hook.func === func;
-        })
-        .length > 0;
-
-    if (already_registered) {
-        throw 'That function is already registered.';
-    }
-
-    hooks.push({
-        func: func,
-        context: context
+    // AMD. Register as an anonymous module unless amdModuleId is set
+    define(["d3","jquery"], function (a0,b1) {
+      return (factory(a0,b1));
     });
-};
+  } else if (typeof exports === 'object') {
+    // Node. Does not work with strict CommonJS, but
+    // only CommonJS-like environments that support module.exports,
+    // like Node.
+    module.exports = factory(require("d3"),require("jquery"));
+  } else {
+    factory(d3,jquery);
+  }
+}(this, function (d3, jquery) {
 
-/**
-    Execute registered hooks.
-
-    Optional arguments
-*/
-MG.call_hook = function(name) {
-    var hooks = MG._hooks[name],
-        result = [].slice.apply(arguments, [1]),
-        processed;
-
-    if (hooks) {
-        hooks.forEach(function(hook) {
-            if (hook.func) {
-                var params = processed || result;
-
-                if (params && params.constructor !== Array) {
-                    params = [params];
-                }
-
-                params = [].concat.apply([], params);
-                processed = hook.func.apply(hook.context, params);
-            }
-        });
-    }
-
-    return processed || result;
-};
+window.MG = {version: '2.4.0'};
 
 MG.globals = {};
 MG.deprecations = {
@@ -216,6 +150,79 @@ MG.data_graphic = function(args) {
 
     return args.data;
 };
+
+/**
+    Record of all registered hooks.
+    For internal use only.
+*/
+MG._hooks = {};
+
+/**
+    Add a hook callthrough to the stack.
+
+    Hooks are executed in the order that they were registered.
+*/
+MG.add_hook = function(name, func, context) {
+    var hooks;
+
+    if (!MG._hooks[name]) {
+        MG._hooks[name] = [];
+    }
+
+    hooks = MG._hooks[name];
+
+    var already_registered =
+        hooks.filter(function(hook) {
+            return hook.func === func;
+        })
+        .length > 0;
+
+    if (already_registered) {
+        throw 'That function is already registered.';
+    }
+
+    hooks.push({
+        func: func,
+        context: context
+    });
+};
+
+/**
+    Execute registered hooks.
+
+    Optional arguments
+*/
+MG.call_hook = function(name) {
+    var hooks = MG._hooks[name],
+        result = [].slice.apply(arguments, [1]),
+        processed;
+
+    if (hooks) {
+        hooks.forEach(function(hook) {
+            if (hook.func) {
+                var params = processed || result;
+
+                if (params && params.constructor !== Array) {
+                    params = [params];
+                }
+
+                params = [].concat.apply([], params);
+                processed = hook.func.apply(hook.context, params);
+            }
+        });
+    }
+
+    return processed || result;
+};
+
+function register(chartType, descriptor, defaults) {
+    MG.charts[chartType] = {
+        descriptor: descriptor,
+        defaults: defaults || {}
+    };
+}
+
+MG.register = register;
 
 if (typeof jQuery !== 'undefined') {
     /*!
@@ -4408,6 +4415,9 @@ MG.data_table = function(args) {
 function raw_data_transformation(args) {
     'use strict';
 
+    // dupe our data so we can modify it without adverse effect
+    args.data = MG.clone(args.data);
+
     // We need to account for a few data format cases:
     // #1 [{key:__, value:__}, ...]                              // unnested obj-arrays
     // #2 [[{key:__, value:__}, ...], [{key:__, value:__}, ...]] // nested obj-arrays
@@ -5416,5 +5426,6 @@ function error(args) {
 
 MG.error = error;
 
-return MG;
+
+
 }));
